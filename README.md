@@ -2,6 +2,8 @@
 
 A tool to populate missing `DateTimeOriginal` EXIF metadata in Google Photos takeout, using Google's JSON metadata.
 
+**With added .supplemental-metadata prefix logic, and other fixes !**
+
 ## Table of Contents
 
 * [Quick Start](#quick-start)
