@@ -7,7 +7,7 @@ export function getCompanionJsonPathForMediaFile(mediaFilePath: string): string 
   const fileExt = extname(mediaFilePath);              // e.g. ".mov"
   const PREFIX_LENGHT = 46;
   
-  const cleanFileName = fileName.replace(/-modifié/gi, '');
+  const cleanFileName = fileName.replace(/-modifié/gi, ''); // ! Edit this for your language
   const base = cleanFileName.replace(fileExt, '');       // e.g. "cm-chat-media-video-1_5c789cfe-89d6-4afa-9978-d(1)"
 
   // Check for a counter at the end, e.g. "(1)"
