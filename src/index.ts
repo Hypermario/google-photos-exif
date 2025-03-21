@@ -8,6 +8,7 @@ import { readPhotoTakenTimeFromGoogleJson } from './helpers/read-photo-taken-tim
 import { updateExifMetadata } from './helpers/update-exif-metadata';
 import { updateFileModificationDate } from './helpers/update-file-modification-date';
 import { Directories } from './models/directories'
+import { resolve } from 'path';
 
 const { readdir, mkdir, copyFile } = fspromises;
 
@@ -130,10 +131,19 @@ class GooglePhotosExif extends Command {
             await updateExifMetadata(mediaFile, photoTimeTaken, directories.error);
             fileNamesWithEditedExif.push(mediaFile.outputFileName);
             this.log(`Wrote "DateTimeOriginal" EXIF metadata to: ${mediaFile.outputFileName}`);
+          } else {
+            console.log("already has exif date.");
           }
+        } else {
+          console.log("media doesn't support exif !!");
         }
 
         await updateFileModificationDate(mediaFile.outputFilePath, photoTimeTaken);
+      } else {
+        await copyFile(mediaFile.outputFilePath,  resolve(directories.error, mediaFile.mediaFileName));
+        if (mediaFile.jsonFileExists && mediaFile.jsonFileName && mediaFile.jsonFilePath) {
+          await copyFile(mediaFile.jsonFilePath, resolve(directories.error, mediaFile.jsonFileName));
+        }
       }
     }
 

@@ -6,6 +6,8 @@ const { readFile } = fspromises;
 
 export async function readPhotoTakenTimeFromGoogleJson(mediaFile: MediaFileInfo): Promise<string|null> {
   if (!mediaFile.jsonFilePath || !mediaFile.jsonFileExists) {
+    console.log("error with file.");
+    console.log(mediaFile.jsonFilePath);
     return null;
   }
 

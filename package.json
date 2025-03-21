@@ -3,9 +3,7 @@
   "description": "A tool to populate missing DateTimeOriginal EXIF metadata in Google Photos takeout, using Google's JSON metadata.",
   "version": "2.0.0",
   "author": "Matt Wilson @mattwilson1024",
-  "bin": {
-    "google-photos-exif": "./bin/run"
-  },
+  "bin": "./bin/run",
   "bugs": "https://github.com/mattwilson1024/google-photos-exif/issues",
   "dependencies": {
     "@oclif/command": "^1",
@@ -47,5 +45,6 @@
     "version": "oclif-dev readme && git add README.md",
     "start": "./bin/run"
   },
-  "types": "lib/index.d.ts"
+  "types": "lib/index.d.ts",
+  "packageManager": "yarn@4.6.0"
 }

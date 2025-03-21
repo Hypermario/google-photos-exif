@@ -1,58 +1,46 @@
-import { existsSync } from "fs"
-import { basename, dirname, extname, resolve } from 'path'
+import { existsSync, readdirSync } from "fs";
+import { basename, dirname, extname, resolve } from "path";
 
-export function getCompanionJsonPathForMediaFile(mediaFilePath: string): string|null {
+export function getCompanionJsonPathForMediaFile(mediaFilePath: string): string | null {
   const directoryPath = dirname(mediaFilePath);
-  const mediaFileExtension = extname(mediaFilePath);
-  let mediaFileNameWithoutExtension = basename(mediaFilePath, mediaFileExtension);
+  const fileName = basename(mediaFilePath);          // e.g. "cm-chat-media-video-1_5c789cfe-89d6-4afa-9978-d(1).mov"
+  const fileExt = extname(mediaFilePath);              // e.g. ".mov"
+  const PREFIX_LENGHT = 46;
+  
+  const cleanFileName = fileName.replace(/-modifié/gi, '');
+  const base = cleanFileName.replace(fileExt, '');       // e.g. "cm-chat-media-video-1_5c789cfe-89d6-4afa-9978-d(1)"
 
-  // Sometimes (if the photo has been edited inside Google Photos) we get files with a `-edited` suffix
-  // These images don't have their own .json sidecars - for these we'd want to use the JSON sidecar for the original image
-  // so we can ignore the "-edited" suffix if there is one
-  mediaFileNameWithoutExtension = mediaFileNameWithoutExtension.replace(/[-]edited$/i, '');
-
-  // The naming pattern for the JSON sidecar files provided by Google Takeout seem to be inconsistent. For `foo.jpg`,
-  // the JSON file is sometimes `foo.json` but sometimes it's `foo.jpg.json`. Here we start building up a list of potential
-  // JSON filenames so that we can try to find them later
-  const potentialJsonFileNames: string[] = [
-    `${mediaFileNameWithoutExtension}.json`,
-    `${mediaFileNameWithoutExtension}${mediaFileExtension}.json`,
-  ];
-
-  // Another edge case which seems to be quite inconsistent occurs when we have media files containing a number suffix for example "foo(1).jpg"
-  // In this case, we don't get "foo(1).json" nor "foo(1).jpg.json". Instead, we strangely get "foo.jpg(1).json".
-  // We can use a regex to look for this edge case and add that to the potential JSON filenames to look out for
-  const nameWithCounterMatch = mediaFileNameWithoutExtension.match(/(?<name>.*)(?<counter>\(\d+\))$/);
-  if (nameWithCounterMatch) {
-    const name = nameWithCounterMatch?.groups?.['name'];
-    const counter = nameWithCounterMatch?.groups?.['counter'];
-    potentialJsonFileNames.push(`${name}${mediaFileExtension}${counter}.json`);
+  // Check for a counter at the end, e.g. "(1)"
+  const counterMatch = base.match(/(.*)(\(\d+\))$/);
+  let withoutCounter = cleanFileName;
+  let counter = "";
+  if (counterMatch) {
+    withoutCounter = counterMatch[1].trim() + fileExt;
+    counter = counterMatch[2]; // e.g. "(1)"
   }
 
-  // Sometimes the media filename ends with extra dash (eg. filename_n-.jpg + filename_n.json)
-  const endsWithExtraDash = mediaFileNameWithoutExtension.endsWith('_n-');
+  const slicedNameWithoutCounter = `${withoutCounter}.supplemental-metadata`.slice(0, PREFIX_LENGHT);
+  const slicedNameWithCounter = `${cleanFileName}.supplemental-metadata`.slice(0, PREFIX_LENGHT);
+  const optionA = slicedNameWithoutCounter + counter + ".json";
+  const optionB = slicedNameWithoutCounter + ".json";
+  const optionC = slicedNameWithCounter + ".json";
 
-  // Sometimes the media filename ends with extra `n` char (eg. filename_n.jpg + filename_.json)
-  const endsWithExtraNChar = mediaFileNameWithoutExtension.endsWith('_n');
+  const optionAPath = resolve(directoryPath, optionA);
+  if (existsSync(optionAPath)) return optionAPath;
 
-  // And sometimes the media filename has extra underscore in it (e.g. filename_.jpg + filename.json)
-  const endsWithExtraUnderscore = mediaFileNameWithoutExtension.endsWith('_');
+  const optionBPath = resolve(directoryPath, optionB);
+  if (existsSync(optionBPath)) return optionBPath;
 
-  if (endsWithExtraDash || endsWithExtraNChar || endsWithExtraUnderscore) {
-    // We need to remove that extra char at the end
-    potentialJsonFileNames.push(`${mediaFileNameWithoutExtension.slice(0, -1)}.json`);
-  }
+  const optionCPath = resolve(directoryPath, optionC);
+  if (existsSync(optionCPath)) return optionCPath;
 
-  // Now look to see if we have a JSON file in the same directory as the image for any of the potential JSON file names
-  // that we identified earlier
-  for (const potentialJsonFileName of potentialJsonFileNames) {
-    const jsonFilePath = resolve(directoryPath, potentialJsonFileName);
-    if (existsSync(jsonFilePath)) {
-      return jsonFilePath;
+  if (fileExt.toLowerCase() === ".mp4") {
+    const heicPath = resolve(directoryPath, `${base}.HEIC`);
+    if (existsSync(heicPath)) {
+      const heicJson = getCompanionJsonPathForMediaFile(heicPath);
+      if (heicJson) return heicJson;
     }
   }
 
-  // If no JSON file was found, just return null - we won't be able to adjust the date timestamps without finding a
-  // suitable JSON sidecar file
   return null;
 }
